@@ -13,10 +13,10 @@ import reactor.core.publisher.Mono;
 @RestController
 public class MfaController {
 
-    private final MfaRequiredSuccessHandler mfaHandler;
+    private final LoginSuccessHandler loginSuccessHandler;
 
-    public MfaController(MfaRequiredSuccessHandler mfaHandler) {
-        this.mfaHandler = mfaHandler;
+    public MfaController(LoginSuccessHandler loginSuccessHandler) {
+        this.loginSuccessHandler = loginSuccessHandler;
     }
 
     @PostMapping("/mfa")
@@ -25,11 +25,13 @@ public class MfaController {
         String username = request.get("username");
         String otp = request.get("otp");
 
-        if (mfaHandler.validateOtp(username, otp)) {
-            return Mono.just(ResponseEntity.ok("MFA SUCCESS"));
-        }
-
-        return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body("INVALID OTP"));
+        return loginSuccessHandler.verifyOtp(username, otp)
+            .flatMap(isValid -> {
+                if (isValid) {
+                    return Mono.just(ResponseEntity.ok("MFA SUCCESS"));
+                }
+                return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("INVALID OTP"));
+            });
     }
 }

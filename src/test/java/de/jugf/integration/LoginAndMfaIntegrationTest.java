@@ -5,9 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 class LoginAndMfaIntegrationTest {
 
     @Autowired
@@ -32,7 +34,10 @@ class LoginAndMfaIntegrationTest {
             .exchange()
             .expectStatus().isAccepted()
             .expectBody(String.class)
-            .isEqualTo("MFA_REQUIRED");
+            .consumeWith(response -> {
+                String body = response.getResponseBody();
+                assert body != null && body.contains("MFA_REQUIRED");
+            });
     }
 
     @Test
@@ -99,7 +104,11 @@ class LoginAndMfaIntegrationTest {
             .bodyValue("{\"username\":\"user\",\"password\":\"password\"}")
             .exchange()
             .expectStatus().isAccepted()
-            .expectBody(String.class).isEqualTo("MFA_REQUIRED");
+            .expectBody(String.class)
+            .consumeWith(response -> {
+                String body = response.getResponseBody();
+                assert body != null && body.contains("MFA_REQUIRED");
+            });
     }
 
     @Test

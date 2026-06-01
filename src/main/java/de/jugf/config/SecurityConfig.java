@@ -17,9 +17,10 @@ import org.springframework.security.web.server.authentication.AuthenticationWebF
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 
 import de.jugf.json.JsonLoginConverter;
+import de.jugf.mfa.LoginSuccessHandler;
 import de.jugf.mfa.MfaAuthenticationConverter;
-import de.jugf.mfa.MfaRequiredSuccessHandler;
 import de.jugf.mfa.MfaSuccessHandler;
+import de.jugf.redis.RedisOtpService;
 import reactor.core.publisher.Mono;
 
 @Configuration
@@ -46,7 +47,7 @@ public class SecurityConfig {
 
 
     @Bean
-    public AuthenticationWebFilter loginFilter(MfaRequiredSuccessHandler successHandler) {
+    public AuthenticationWebFilter loginFilter(LoginSuccessHandler successHandler) {
         AuthenticationWebFilter filter = new AuthenticationWebFilter(userPasswordAuthManager());
 
         filter.setServerAuthenticationConverter(new JsonLoginConverter());
@@ -58,8 +59,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler,  MfaSuccessHandler mfaSuccessHandler) {
-        AuthenticationWebFilter filter = new AuthenticationWebFilter(mfaAuthenticationManager(handler));
+    public AuthenticationWebFilter mfaFilter(LoginSuccessHandler handler,  MfaSuccessHandler mfaSuccessHandler, RedisOtpService otpService) {
+        AuthenticationWebFilter filter = new AuthenticationWebFilter(mfaAuthenticationManager(otpService));
 
         filter.setServerAuthenticationConverter(new MfaAuthenticationConverter());
         filter.setRequiresAuthenticationMatcher(
@@ -83,22 +84,28 @@ public class SecurityConfig {
         };
     }
 
-    public ReactiveAuthenticationManager mfaAuthenticationManager(
-            MfaRequiredSuccessHandler handler) {
-        return authentication -> {
-            String username = authentication.getName();
-            String otp = authentication.getCredentials().toString();
 
-            if (handler.validateOtp(username, otp)) {
-                return Mono.just(
+public ReactiveAuthenticationManager mfaAuthenticationManager(RedisOtpService otpService) {
+    return authentication -> {
+
+        String username = authentication.getName();
+        String otp = authentication.getCredentials().toString();
+
+        return otpService.validateOtp(username, otp)
+            .flatMap(valid -> {
+                if (valid) {
+                    return Mono.just(
                         new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                List.of(new SimpleGrantedAuthority("ROLE_USER"))));
-            }
+                            username,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                        )
+                    );
+                }
+                return Mono.error(new BadCredentialsException("Invalid OTP"));
+            });
+    };
+}
 
-            return Mono.error(new BadCredentialsException("Invalid OTP"));
-        };
-    }
 
 }
