@@ -8,8 +8,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
-import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -17,6 +17,7 @@ import org.springframework.security.web.server.authentication.AuthenticationWebF
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 
 import de.jugf.json.JsonLoginConverter;
+import de.jugf.mfa.LoginFailureHandler;
 import de.jugf.mfa.MfaAuthenticationConverter;
 import de.jugf.mfa.MfaRequiredSuccessHandler;
 import de.jugf.mfa.MfaSuccessHandler;
@@ -26,20 +27,42 @@ import reactor.core.publisher.Mono;
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
+
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
             AuthenticationWebFilter loginFilter,
-            AuthenticationWebFilter mfaFilter) {
+            AuthenticationWebFilter mfaFilter, MfaRequiredSuccessHandler mfaRequiredSuccessHandler, LoginFailureHandler loginFailureHandler) {
         return http
                 .csrf(csrf -> csrf.disable())
-                .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/login", "/mfa").permitAll()
-                        .anyExchange().authenticated())
-                .formLogin(form -> form.disable()) // we implement custom login
-                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
 
-                .addFilterAt(loginFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-                .addFilterAt(mfaFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                                // ✅ CORS
+                .cors(Customizer.withDefaults())
+                // HTTP Basic
+                .httpBasic(Customizer.withDefaults())
+
+                
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers("/login", "/login-mfa", "/mfa").permitAll()
+                        .pathMatchers("/qr-setup").permitAll()
+
+                        .anyExchange().authenticated())
+
+                .formLogin(form -> form.authenticationSuccessHandler(mfaRequiredSuccessHandler).authenticationFailureHandler(loginFailureHandler))
+
+                //  Exception Handling
+//                .exceptionHandling(ex -> ex
+  //              .accessDeniedHandler(accessDeniedHandler())
+   //             )
+
+         //       .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+
+          //      .addFilterAt(loginFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+          //      .addFilterAt(mfaFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+
+
+          //allow the routes
+
+
 
                 .build();
     }
