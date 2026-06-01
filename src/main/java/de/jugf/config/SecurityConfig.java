@@ -65,12 +65,6 @@ public class SecurityConfig {
         filter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, "/mfa"));
 
-        // filter.setAuthenticationSuccessHandler((webFilterExchange, auth) -> {
-        //     ServerHttpResponse response = webFilterExchange.getExchange().getResponse();
-        //     response.setStatusCode(HttpStatus.OK);
-        //     return response.setComplete();
-        // });
-
         filter.setAuthenticationSuccessHandler(mfaSuccessHandler);
         return filter;
     }
