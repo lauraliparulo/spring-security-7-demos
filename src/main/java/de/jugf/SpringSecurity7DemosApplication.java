@@ -1,4 +1,4 @@
-package de.jugf.spring_security_7_demos;
+package de.jugf;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
