@@ -12,6 +12,9 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
@@ -19,6 +22,7 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 import de.jugf.json.JsonLoginConverter;
 import de.jugf.mfa.MfaAuthenticationConverter;
 import de.jugf.mfa.MfaRequiredSuccessHandler;
+import de.jugf.mfa.MfaSetupHandler;
 import de.jugf.mfa.MfaSuccessHandler;
 import reactor.core.publisher.Mono;
 
@@ -27,38 +31,48 @@ import reactor.core.publisher.Mono;
 public class SecurityConfig {
 
     @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> new CustomUserDetails("admin", "pass123", "");
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance();
+    }
+
+    @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
             AuthenticationWebFilter loginFilter,
             AuthenticationWebFilter mfaFilter) {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/login", "/mfa").permitAll()
+                        .pathMatchers("/login","/mfa/setup-2fa").permitAll()
+                        .pathMatchers("/mfa/verify").authenticated()
+                        .pathMatchers("/mfa").permitAll()
                         .anyExchange().authenticated())
-                .formLogin(form -> form.disable()) // we implement custom login
+                          .formLogin(form -> form.disable())
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-
                 .addFilterAt(loginFilter, SecurityWebFiltersOrder.AUTHENTICATION)
                 .addFilterAt(mfaFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-
                 .build();
     }
 
-
     @Bean
-    public AuthenticationWebFilter loginFilter(MfaRequiredSuccessHandler successHandler) {
+    public AuthenticationWebFilter loginFilter(MfaSetupHandler mfaSetupHandler) {
         AuthenticationWebFilter filter = new AuthenticationWebFilter(userPasswordAuthManager());
 
         filter.setServerAuthenticationConverter(new JsonLoginConverter());
         filter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, "/login"));
-        filter.setAuthenticationSuccessHandler(successHandler);
+        filter.setAuthenticationSuccessHandler(mfaSetupHandler);
 
         return filter;
     }
 
     @Bean
-    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler,  MfaSuccessHandler mfaSuccessHandler) {
+    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler,
+            MfaSuccessHandler mfaSuccessHandler) {
         AuthenticationWebFilter filter = new AuthenticationWebFilter(mfaAuthenticationManager(handler));
 
         filter.setServerAuthenticationConverter(new MfaAuthenticationConverter());
@@ -74,8 +88,7 @@ public class SecurityConfig {
             String username = authentication.getName();
             String password = authentication.getCredentials().toString();
 
-            // ✅ Replace with DB lookup
-            if ("user".equals(username) && "password".equals(password)) {
+            if ("admin".equals(username) && "pass123".equals(password)) {
                 return Mono.just(new UsernamePasswordAuthenticationToken(
                         username, password, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
             }

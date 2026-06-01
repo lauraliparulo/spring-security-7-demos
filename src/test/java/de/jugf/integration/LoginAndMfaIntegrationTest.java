@@ -23,16 +23,15 @@ class LoginAndMfaIntegrationTest {
     }
 
     @Test
-    void testLoginWithValidCredentials() {
+    void testLoginWithValidCredentialsRedirectsTo2faSetup() {
         getWebTestClient()
             .post()
             .uri("/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"user\",\"password\":\"password\"}")
+            .bodyValue("{\"username\":\"admin\",\"password\":\"pass123\"}")
             .exchange()
-            .expectStatus().isAccepted()
-            .expectBody(String.class)
-            .isEqualTo("MFA_REQUIRED");
+            .expectStatus().isFound()
+            .expectHeader().location("/setup-2fa");
     }
 
     @Test
@@ -41,7 +40,7 @@ class LoginAndMfaIntegrationTest {
             .post()
             .uri("/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"user\",\"password\":\"wrongpassword\"}")
+            .bodyValue("{\"username\":\"admin\",\"password\":\"wrongpassword\"}")
             .exchange()
             .expectStatus().isUnauthorized();
     }
@@ -52,18 +51,27 @@ class LoginAndMfaIntegrationTest {
             .post()
             .uri("/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"invaliduser\",\"password\":\"password\"}")
+            .bodyValue("{\"username\":\"invaliduser\",\"password\":\"pass123\"}")
             .exchange()
             .expectStatus().isUnauthorized();
     }
 
     @Test
-    void testMfaEndpointWithInvalidOtp() {
+    void testSetup2faPageRequiresAuthentication() {
+        getWebTestClient()
+            .get()
+            .uri("/setup-2fa")
+            .exchange()
+            .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void testMfaVerifyEndpointRequiresAuthentication() {
         getWebTestClient()
             .post()
-            .uri("/mfa")
+            .uri("/mfa/verify")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"user\",\"otp\":\"123456\"}")
+            .bodyValue("{\"otp\":\"123456\"}")
             .exchange()
             .expectStatus().isUnauthorized();
     }
@@ -74,9 +82,10 @@ class LoginAndMfaIntegrationTest {
             .post()
             .uri("/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{  \"username\"  :  \"user\"  ,  \"password\"  :  \"password\"  }")
+            .bodyValue("{  \"username\"  :  \"admin\"  ,  \"password\"  :  \"pass123\"  }")
             .exchange()
-            .expectStatus().isAccepted();
+            .expectStatus().isFound()
+            .expectHeader().location("/setup-2fa");
     }
 
     @Test
@@ -85,30 +94,7 @@ class LoginAndMfaIntegrationTest {
             .post()
             .uri("/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"\",\"password\":\"password\"}")
-            .exchange()
-            .expectStatus().isUnauthorized();
-    }
-
-    @Test
-    void testLoginResponseBodyContainsMfaRequired() {
-        getWebTestClient()
-            .post()
-            .uri("/login")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"user\",\"password\":\"password\"}")
-            .exchange()
-            .expectStatus().isAccepted()
-            .expectBody(String.class).isEqualTo("MFA_REQUIRED");
-    }
-
-    @Test
-    void testMfaEndpointPermittedWithoutAuth() {
-        getWebTestClient()
-            .post()
-            .uri("/mfa")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"user\",\"otp\":\"123456\"}")
+            .bodyValue("{\"username\":\"\",\"password\":\"pass123\"}")
             .exchange()
             .expectStatus().isUnauthorized();
     }
@@ -119,9 +105,9 @@ class LoginAndMfaIntegrationTest {
             .post()
             .uri("/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue("{\"username\":\"user\",\"password\":\"password\"}")
+            .bodyValue("{\"username\":\"admin\",\"password\":\"pass123\"}")
             .exchange()
-            .expectStatus().isAccepted();
+            .expectStatus().isFound();
     }
 
     @Test
