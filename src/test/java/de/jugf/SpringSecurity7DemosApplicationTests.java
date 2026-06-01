@@ -1,4 +1,4 @@
-package de.jugf.spring_security_7_demos;
+package de.jugf;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
