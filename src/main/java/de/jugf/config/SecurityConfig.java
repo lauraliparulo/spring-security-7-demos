@@ -5,8 +5,6 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,6 +19,7 @@ import org.springframework.security.web.server.util.matcher.ServerWebExchangeMat
 import de.jugf.json.JsonLoginConverter;
 import de.jugf.mfa.MfaAuthenticationConverter;
 import de.jugf.mfa.MfaRequiredSuccessHandler;
+import de.jugf.mfa.MfaSuccessHandler;
 import reactor.core.publisher.Mono;
 
 @Configuration
@@ -45,20 +44,6 @@ public class SecurityConfig {
                 .build();
     }
 
-    // @Bean
-    // public AuthenticationWebFilter authenticationWebFilter() {
-    // AuthenticationWebFilter filter =
-    // new AuthenticationWebFilter(userPasswordAuthManager());
-
-    // filter.setServerAuthenticationConverter(new JsonLoginConverter());
-    // filter.setAuthenticationSuccessHandler(new MfaRequiredSuccessHandler());
-    // filter.setAuthenticationFailureHandler(new
-    // ServerAuthenticationEntryPointFailureHandler(
-    // new HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED)
-    // ));
-
-    // return filter;
-    // }
 
     @Bean
     public AuthenticationWebFilter loginFilter(MfaRequiredSuccessHandler successHandler) {
@@ -73,19 +58,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler) {
+    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler,  MfaSuccessHandler mfaSuccessHandler) {
         AuthenticationWebFilter filter = new AuthenticationWebFilter(mfaAuthenticationManager(handler));
 
         filter.setServerAuthenticationConverter(new MfaAuthenticationConverter());
         filter.setRequiresAuthenticationMatcher(
                 ServerWebExchangeMatchers.pathMatchers(HttpMethod.POST, "/mfa"));
 
-        filter.setAuthenticationSuccessHandler((webFilterExchange, auth) -> {
-            ServerHttpResponse response = webFilterExchange.getExchange().getResponse();
-            response.setStatusCode(HttpStatus.OK);
-            return response.setComplete();
-        });
+        // filter.setAuthenticationSuccessHandler((webFilterExchange, auth) -> {
+        //     ServerHttpResponse response = webFilterExchange.getExchange().getResponse();
+        //     response.setStatusCode(HttpStatus.OK);
+        //     return response.setComplete();
+        // });
 
+        filter.setAuthenticationSuccessHandler(mfaSuccessHandler);
         return filter;
     }
 
