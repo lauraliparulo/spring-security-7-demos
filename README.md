@@ -1,5 +1,7 @@
 # Spring Security 7 Demos
 
+> ./mvnw clean compile
+> ./mvnw spring-boot:run
 
 ## Step 1. Login
 
@@ -20,9 +22,6 @@ POST localhost:8080/mfa
   "username": "user",
   "otp": "123456"
 }
-
--------------
-TODO  - IMPROVE response after login!!
 
 --------------------------------------------
 

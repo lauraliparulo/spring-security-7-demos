@@ -9,11 +9,8 @@ import org.springframework.web.server.ServerWebExchange;
 
 import de.jugf.dto.MfaRequest;
 import reactor.core.publisher.Mono;
-import tools.jackson.databind.ObjectMapper;
 
 public class MfaAuthenticationConverter implements ServerAuthenticationConverter {
-
-    private final ObjectMapper mapper = new ObjectMapper();
     
     @Override
     public Mono<Authentication> convert(ServerWebExchange exchange) {
