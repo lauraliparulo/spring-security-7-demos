@@ -6,20 +6,18 @@
 </head>
 <body>
 
-<h1>Welcome {{username}}!</h1>
-<p>This is your first login.</p>
+<h1>Welcome, {{username}}!</h1>
+<p>Your username and password are correct. </p>
 
 
 <form action="/otp-submit" method="post">
-    <label for="value">Enter OTP from Google Auth:</label>
-    <input type="text" name="otp">
+    <label for="otp">Enter OTP from Google Auth:</label>
+    <input type="text" name="otp" placeholder="Enter OTP" required />
     <button type="submit">Complete Login</button>
 </form>
 
 
-Proceed to MFAAA!
-
-MFA REQUIRESD
+<br />
 <a href="/google-auth-qr">Scan QR Code for Google Authenticator</a>
 
 </body>
