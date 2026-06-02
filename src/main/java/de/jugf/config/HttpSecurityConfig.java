@@ -25,8 +25,7 @@ import reactor.core.publisher.Mono;
 
 @Configuration
 @EnableWebFluxSecurity
-public class SecurityConfig {
-
+public class HttpSecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http,
@@ -34,39 +33,29 @@ public class SecurityConfig {
             AuthenticationWebFilter mfaFilter, MfaRequiredSuccessHandler mfaRequiredSuccessHandler, LoginFailureHandler loginFailureHandler) {
         return http
                 .csrf(csrf -> csrf.disable())
-
-                                // ✅ CORS
+                // ✅ CORS
                 .cors(Customizer.withDefaults())
                 // HTTP Basic
                 .httpBasic(Customizer.withDefaults())
-
-                
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/login", "/login-mfa", "/mfa").permitAll()
-                        .pathMatchers("/qr-setup").permitAll()
-
-                        .anyExchange().authenticated())
-
+                .pathMatchers("/login", "/login-mfa", "/mfa").permitAll()
+                .pathMatchers("/qr-setup").permitAll()
+                .anyExchange().authenticated())
                 .formLogin(form -> form.authenticationSuccessHandler(mfaRequiredSuccessHandler).authenticationFailureHandler(loginFailureHandler))
-
                 //  Exception Handling
-//                .exceptionHandling(ex -> ex
-  //              .accessDeniedHandler(accessDeniedHandler())
-   //             )
+                //                .exceptionHandling(ex -> ex
+                //              .accessDeniedHandler(accessDeniedHandler())
+                //             )
 
-         //       .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                //       .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
 
-          //      .addFilterAt(loginFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-          //      .addFilterAt(mfaFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                //      .addFilterAt(loginFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                //      .addFilterAt(mfaFilter, SecurityWebFiltersOrder.AUTHENTICATION)
 
-
-          //allow the routes
-
-
+                //allow the routes
 
                 .build();
     }
-
 
     @Bean
     public AuthenticationWebFilter loginFilter(MfaRequiredSuccessHandler successHandler) {
@@ -81,7 +70,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler,  MfaSuccessHandler mfaSuccessHandler) {
+    public AuthenticationWebFilter mfaFilter(MfaRequiredSuccessHandler handler, MfaSuccessHandler mfaSuccessHandler) {
         AuthenticationWebFilter filter = new AuthenticationWebFilter(mfaAuthenticationManager(handler));
 
         filter.setServerAuthenticationConverter(new MfaAuthenticationConverter());
